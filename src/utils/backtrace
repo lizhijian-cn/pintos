@@ -47,7 +47,7 @@ if (!@binaries) {
 }
 
 # Find addr2line.
-my ($a2l) = search_path ("i386-elf-addr2line") || search_path ("addr2line");
+my ($a2l) = search_path ("i386-elf-addr2line") || search_path ("addr2line") || search_path("x86_64-elf-addr2line");
 if (!$a2l) {
     die "backtrace: neither `i386-elf-addr2line' nor `addr2line' in PATH\n";
 }
