@@ -17,6 +17,7 @@
 #include "threads/palloc.h"
 #include "threads/thread.h"
 #include "threads/vaddr.h"
+#include "devices/timer.h"
 
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
@@ -39,7 +40,9 @@ process_execute (const char *file_name)
   strlcpy (fn_copy, file_name, PGSIZE);
 
   /* Create a new thread to execute FILE_NAME. */
-  tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
+  char *rest = (char *) file_name, *exec_name;
+  exec_name = strtok_r (rest, " ", &rest);
+  tid = thread_create (exec_name, PRI_DEFAULT, start_process, fn_copy);
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy); 
   return tid;
@@ -88,6 +91,7 @@ start_process (void *file_name_)
 int
 process_wait (tid_t child_tid UNUSED) 
 {
+  timer_msleep (1000);
   return -1;
 }
 
@@ -196,6 +200,7 @@ struct Elf32_Phdr
 #define PF_R 4          /* Readable. */
 
 static bool setup_stack (void **esp);
+static void setup_arguments(const char *file_name, void **esp);
 static bool validate_segment (const struct Elf32_Phdr *, struct file *);
 static bool load_segment (struct file *file, off_t ofs, uint8_t *upage,
                           uint32_t read_bytes, uint32_t zero_bytes,
@@ -215,6 +220,13 @@ load (const char *file_name, void (**eip) (void), void **esp)
   bool success = false;
   int i;
 
+  int n = strlen(file_name) + 1;
+  char file_name_cpy[n];
+  memcpy (file_name_cpy, file_name, n);
+
+  char *exec_name, *rest;
+  exec_name = strtok_r (file_name_cpy, " ", &rest);
+
   /* Allocate and activate page directory. */
   t->pagedir = pagedir_create ();
   if (t->pagedir == NULL) 
@@ -222,7 +234,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
   process_activate ();
 
   /* Open executable file. */
-  file = filesys_open (file_name);
+  file = filesys_open (exec_name);
   if (file == NULL) 
     {
       printf ("load: %s: open failed\n", file_name);
@@ -305,6 +317,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
   if (!setup_stack (esp))
     goto done;
 
+  setup_arguments(file_name, esp);
   /* Start address. */
   *eip = (void (*) (void)) ehdr.e_entry;
 
@@ -437,7 +450,7 @@ setup_stack (void **esp)
     {
       success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
       if (success)
-        *esp = PHYS_BASE;
+          *esp = PHYS_BASE;
       else
         palloc_free_page (kpage);
     }
@@ -462,4 +475,49 @@ install_page (void *upage, void *kpage, bool writable)
      address, then map our page there. */
   return (pagedir_get_page (t->pagedir, upage) == NULL
           && pagedir_set_page (t->pagedir, upage, kpage, writable));
+}
+
+static void
+setup_arguments(const char *file_name, void **esp)
+{
+  int n = strlen (file_name) + 1;
+  char file_name_cpy[n];
+  memcpy (file_name_cpy, file_name, n);
+
+  char *rest = file_name_cpy, *token;
+
+  int argc = 0;
+  while ((token = strtok_r (rest, " ", &rest)) != NULL)
+    argc++;
+
+  *esp -= n;
+  memcpy (*esp, file_name, n);
+
+  rest = *esp;
+
+  {
+    unsigned word_align = (unsigned) *esp % 4;
+    *esp -= word_align;
+    memset (*esp, 0, word_align);
+  }
+
+  *esp -= 4;
+  memset (*esp, 0, 4);
+
+  *esp -= argc * 4;
+  for (int i = 0; i < argc; i++)
+    {
+      token = strtok_r (rest, " ", &rest);
+      memcpy (*esp + 4 * i, &token, 4);
+    }
+  
+  void *p = *esp;
+  *esp -= 4;
+  memcpy (*esp, &p, 4);
+
+  *esp -= 4;
+  memcpy (*esp, &argc, 4);
+
+  *esp -= 4;
+  memset (*esp, 0, 4);
 }
