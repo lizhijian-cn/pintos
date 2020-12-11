@@ -10,6 +10,7 @@
 #include "filesys/file.h"
 #include "threads/malloc.h"
 #include "userprog/pagedir.h"
+#include "userprog/process_file.h"
 
 static void syscall_handler (struct intr_frame *f);
 
@@ -34,25 +35,6 @@ void seek (int fd, unsigned position);
 unsigned tell (int fd);
 void close (int fd);
 
-struct process_file
-  {
-    struct file *file;
-    int fd;
-    struct list_elem elem;
-  };
-
-static struct process_file *
-get_process_file_by_fd (struct thread *t, int fd)
-{
-  struct list *files = &t->open_file_list;
-  for (struct list_elem *e = list_begin (files); e != list_end (files); e = list_next (e))
-    {
-      struct process_file *pfile = list_entry (e, struct process_file, elem);
-      if (pfile->fd == fd)
-        return pfile;
-    }
-  return NULL;
-}
 
 static void
 syscall_handler (struct intr_frame *f UNUSED) 
@@ -292,14 +274,6 @@ tell (int fd)
   if (pfile == NULL)
     return 0;
   return file_tell (pfile->file);
-}
-
-static
-void process_file_close (struct process_file *pfile)
-{
-  list_remove (&pfile->elem);
-  file_close (pfile->file);
-  free (pfile);
 }
 
 void
