@@ -111,6 +111,8 @@ struct thread
     struct semaphore load_sema;
 
     struct semaphore wait_sema;
+
+    struct file *self_file;
 #endif
 
     /* Owned by thread.c. */

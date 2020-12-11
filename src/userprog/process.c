@@ -158,6 +158,11 @@ process_exit (void)
 
   status_code_hashtable[cur->tid] = cur->status_code;
   list_remove (&cur->process_elem);
+  if (cur->self_file != NULL)
+    {
+      file_allow_write (cur->self_file);
+      file_close (cur->self_file);
+    }
   sema_up (&cur->wait_sema);
 }
 
@@ -366,7 +371,16 @@ load (const char *file_name, void (**eip) (void), void **esp)
 
  done:
   /* We arrive here whether the load is successful or not. */
-  file_close (file);
+  if (success)
+    {
+      file_deny_write (file);
+      thread_current ()->self_file = file;
+    }
+  else
+    {
+      file_close (file);
+      thread_current ()->self_file = NULL;
+    }
   return success;
 }
 
