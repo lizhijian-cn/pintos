@@ -8,7 +8,7 @@
 ```
 user_shortcut: keys=ctrlaltdel
 ```
-现在已经可以编译运行了，但仍然**无法用gdb进行调试**。
+现在已经可以编译运行了，但**无法直接在bochs下调试**，必须安装`qemu-system`用qemu进行调试。
 
 
 # Install
