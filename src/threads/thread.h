@@ -98,6 +98,9 @@ struct thread
     uint32_t *pagedir;                  /* Page directory. */
 
     int status_code;
+    
+    struct list open_file_list;
+    int fd;
 #endif
 
     /* Owned by thread.c. */
