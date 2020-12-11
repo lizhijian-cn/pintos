@@ -23,7 +23,16 @@
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
 
-static int status_code_hashtable[10000];
+#define MAX_PROCESS_COUNT 10000
+enum PID_STATUS
+  {
+    INVALID,
+    NONWAITED,
+    WAITED
+  };
+static enum PID_STATUS process_status[MAX_PROCESS_COUNT];
+static int process_status_code[MAX_PROCESS_COUNT];
+
 /* Starts a new thread running a user program loaded from
    FILENAME.  The new thread may be scheduled (and may even exit)
    before process_execute() returns.  Returns the new process's
@@ -54,6 +63,9 @@ process_execute (const char *file_name)
   sema_down (&cur->load_sema);
   if (!cur->load_success)
     tid = TID_ERROR;
+  
+  if (tid != TID_ERROR)
+    process_status[tid] = NONWAITED;
   return tid;
 }
 
@@ -123,11 +135,14 @@ int
 process_wait (tid_t child_tid) 
 {
   struct thread *cur = thread_current ();
-  struct thread *t = get_thread_by_tid (cur, child_tid);
-  if (t == NULL)
+  if (child_tid > MAX_PROCESS_COUNT || process_status[child_tid] == INVALID || process_status[child_tid] == WAITED)
     return -1;
-  sema_down (&t->wait_sema);
-  return status_code_hashtable[child_tid];
+  
+  process_status[child_tid] = WAITED;
+  struct thread *t = get_thread_by_tid (cur, child_tid);
+  if (t != NULL)
+    sema_down (&t->wait_sema);
+  return process_status_code[child_tid];
 }
 
 /* Free the current process's resources. */
@@ -156,7 +171,7 @@ process_exit (void)
     }
   close_all_open_file (cur);
 
-  status_code_hashtable[cur->tid] = cur->status_code;
+  process_status_code[cur->tid] = cur->status_code;
   list_remove (&cur->process_elem);
   if (cur->self_file != NULL)
     {
