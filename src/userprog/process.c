@@ -23,6 +23,7 @@
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
 
+static int status_code_hashtable[10000];
 /* Starts a new thread running a user program loaded from
    FILENAME.  The new thread may be scheduled (and may even exit)
    before process_execute() returns.  Returns the new process's
@@ -44,8 +45,15 @@ process_execute (const char *file_name)
   char *rest = (char *) file_name, *exec_name;
   exec_name = strtok_r (rest, " ", &rest);
   tid = thread_create (exec_name, PRI_DEFAULT, start_process, fn_copy);
+
+  /* fn_copy was freed in start_process() */
   if (tid == TID_ERROR)
-    palloc_free_page (fn_copy); 
+    palloc_free_page (fn_copy);
+
+  struct thread *cur = thread_current ();
+  sema_down (&cur->load_sema);
+  if (!cur->load_success)
+    tid = TID_ERROR;
   return tid;
 }
 
@@ -65,10 +73,19 @@ start_process (void *file_name_)
   if_.eflags = FLAG_IF | FLAG_MBS;
   success = load (file_name, &if_.eip, &if_.esp);
 
+  /* If load failed, parent process_execute return -1 */
+  struct thread *cur = thread_current ();
+  cur->parent->load_success = success;
+  list_push_back (&cur->parent->child_process_list, &cur->process_elem);
+  sema_up (&cur->parent->load_sema);
+
   /* If load failed, quit. */
   palloc_free_page (file_name);
-  if (!success) 
-    thread_exit ();
+  if (!success)
+    {
+      thread_current ()->status_code = -1;
+      thread_exit ();
+    }
 
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
@@ -78,6 +95,19 @@ start_process (void *file_name_)
      and jump to it. */
   asm volatile ("movl %0, %%esp; jmp intr_exit" : : "g" (&if_) : "memory");
   NOT_REACHED ();
+}
+
+static struct thread *
+get_thread_by_tid (struct thread *t, tid_t tid)
+{
+  struct list *childs = &t->child_process_list;
+  for (struct list_elem *e = list_begin (childs); e != list_end (childs); e = list_next (e))
+    {
+      struct thread *t = list_entry (e, struct thread, process_elem);
+      if (t->tid == tid)
+        return t;
+    }
+  return NULL;
 }
 
 /* Waits for thread TID to die and returns its exit status.  If
@@ -90,10 +120,14 @@ start_process (void *file_name_)
    This function will be implemented in problem 2-2.  For now, it
    does nothing. */
 int
-process_wait (tid_t child_tid UNUSED) 
+process_wait (tid_t child_tid) 
 {
-  timer_msleep (1000);
-  return -1;
+  struct thread *cur = thread_current ();
+  struct thread *t = get_thread_by_tid (cur, child_tid);
+  if (t == NULL)
+    return -1;
+  sema_down (&t->wait_sema);
+  return status_code_hashtable[child_tid];
 }
 
 /* Free the current process's resources. */
@@ -101,6 +135,7 @@ void
 process_exit (void)
 {
   struct thread *cur = thread_current ();
+  printf ("%s: exit(%d)\n", cur->name, cur->status_code);
   uint32_t *pd;
 
   /* Destroy the current process's page directory and switch back
@@ -119,7 +154,11 @@ process_exit (void)
       pagedir_activate (NULL);
       pagedir_destroy (pd);
     }
-  close_all_open_file (thread_current ());
+  close_all_open_file (cur);
+
+  status_code_hashtable[cur->tid] = cur->status_code;
+  list_remove (&cur->process_elem);
+  sema_up (&cur->wait_sema);
 }
 
 /* Sets up the CPU for running user code in the current

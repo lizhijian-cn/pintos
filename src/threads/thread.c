@@ -96,6 +96,12 @@ thread_init (void)
   /* Set up a thread structure for the running thread. */
   initial_thread = running_thread ();
   init_thread (initial_thread, "main", PRI_DEFAULT);
+#ifdef USERPROG
+  list_init (&initial_thread->child_process_list);
+  initial_thread->parent = running_thread ();
+  initial_thread->load_success = false;
+  sema_init (&initial_thread->load_sema, 0);
+#endif
   initial_thread->status = THREAD_RUNNING;
   initial_thread->tid = allocate_tid ();
 }
@@ -187,6 +193,14 @@ thread_create (const char *name, int priority,
   /* Initialize process */
   list_init (&t->open_file_list);
   t->fd = 3;
+
+  list_init (&t->child_process_list);
+
+  t->parent = running_thread ();
+  t->load_success = false;
+  sema_init (&t->load_sema, 0);
+
+  sema_init (&t->wait_sema, 0);
 #endif
   /* Stack frame for kernel_thread(). */
   kf = alloc_frame (t, sizeof *kf);

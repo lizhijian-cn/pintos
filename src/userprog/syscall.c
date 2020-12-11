@@ -11,6 +11,7 @@
 #include "threads/malloc.h"
 #include "userprog/pagedir.h"
 #include "userprog/process_file.h"
+#include "userprog/process.h"
 
 static void syscall_handler (struct intr_frame *f);
 
@@ -52,6 +53,24 @@ syscall_handler (struct intr_frame *f UNUSED)
         {
           get_args (f, args, 1);
           exit (args[0]);
+          break;
+        }
+      // pid_t exec (const char *cmd_line)
+      case SYS_EXEC:
+        {
+          get_args (f, args, 1);
+          char *cmd_line = (char *)args[0];
+          check_valid_string (cmd_line);
+          cmd_line = (char *) pagedir_get_page (thread_current ()->pagedir, cmd_line);
+          f->eax = process_execute (cmd_line);
+          break;
+        }
+      // int wait (pid_t pid)
+      case SYS_WAIT:
+        {
+          get_args (f,args, 1);
+          int pid = args[0];
+          f->eax = process_wait (pid);
           break;
         }
       // bool create (const char *file, unsigned initial_size)
@@ -136,6 +155,7 @@ syscall_handler (struct intr_frame *f UNUSED)
           break;
         }
       default:
+        printf ("unknown syscall code %d\n", code);
         exit (-1);
         break;
     }
@@ -185,11 +205,9 @@ check_valid_buffer (const void *ptr, unsigned size)
 void
 check_valid_string (const void *ptr)
 {
-  check_valid_addr (ptr);
-
   char *str = (char *) ptr;
-  while (*str)
-    check_valid_addr (str++);
+  do check_valid_addr (str);
+  while (*str++);
 }
 
 void
@@ -197,7 +215,6 @@ exit (int status)
 {
   struct thread *cur = thread_current ();
   cur->status_code = status;
-  printf ("%s: exit(%d)\n", cur->name, cur->status_code);
   thread_exit ();
 }
 
