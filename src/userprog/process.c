@@ -51,7 +51,10 @@ process_execute (const char *file_name)
   strlcpy (fn_copy, file_name, PGSIZE);
 
   /* Create a new thread to execute FILE_NAME. */
-  char *rest = (char *) file_name, *exec_name;
+  int n = strlen (file_name) + 1;
+  char file_name_cpy[n];
+  memcpy (file_name_cpy, file_name, n);
+  char *rest = (char *) file_name_cpy, *exec_name;
   exec_name = strtok_r (rest, " ", &rest);
   tid = thread_create (exec_name, PRI_DEFAULT, start_process, fn_copy);
 

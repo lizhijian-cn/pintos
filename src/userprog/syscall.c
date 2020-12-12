@@ -61,7 +61,6 @@ syscall_handler (struct intr_frame *f UNUSED)
           get_args (f, args, 1);
           char *cmd_line = (char *)args[0];
           check_valid_string (cmd_line);
-          cmd_line = (char *) pagedir_get_page (thread_current ()->pagedir, cmd_line);
           f->eax = process_execute (cmd_line);
           break;
         }

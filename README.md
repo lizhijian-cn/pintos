@@ -82,6 +82,8 @@ thread本身的资源
 
 ## exec & wait
 先明确一些特殊情况
+* 使用strtok_r前必须拷贝字符串，因为strtok_r会更改输入的字符串，如果输入串的所在的用户页是只读的，会报错！！！
+
 * 当子进程load失败时，父进程的process_execute应该返回-1，所以process_execute必须要阻塞，直到子进程load返回
 
 * 接上条，子进程load失败时，子进程的status_code为-1
@@ -89,8 +91,6 @@ thread本身的资源
 * 同样地，子进程因为访问非法内存抛异常时，status_code为-1
 
 * wait同一个子进程两次时，第二次返回-1（所以子进程退出时，记得把自己从父进程的`child_process_list`中删除
-
-* cmd_line = (char *) pagedir_get_page (thread_current ()->pagedir, cmd_line);
 
 
 新增一些字段
