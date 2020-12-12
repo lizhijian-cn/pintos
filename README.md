@@ -12,14 +12,8 @@ tar xzf bochs-2.6.10.tar.gz
 
 cd bochs-2.6.10
 
-# change the configure
-vim .conf.linux
-
-# add two lines in line 73 and save 
-# --enable-gdb-stub \
-# --with-nogui \
-
-./.conf.linux
+# make and install bochs
+./.conf.linux --enable-gdb-stub --with-nogui
 make
 sudo make install
 
