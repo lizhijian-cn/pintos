@@ -22,7 +22,9 @@ sudo apt install qemu-system
 ```
 
 **if you got an `Could not open wave output device` panic, you can modify the bochs source code and remake it**
-<font color="red">I dont know why, but it can run :)</font>
+
+~~I dont know why, but it can run :)~~
+
 ```c
 // bochs-2.6.10/iodev/sound/soundmod.cc
 // in function void bx_soundmod_ctl_c::init()
