@@ -21,6 +21,21 @@ sudo make install
 sudo apt install qemu-system
 ```
 
+**if you got an `Could not open wave output device` panic, you can modify the bochs source code and remake it**
+
+```c
+// bochs-2.6.10/iodev/sound/soundmod.cc
+// in function void bx_soundmod_ctl_c::init()
+
+    ret = waveout->openwaveoutput(pwaveout);
+
+    ret = BX_SOUNDLOW_OK; // add this line to make check normally. I dont know why, but it can run :)
+    
+    if (ret != BX_SOUNDLOW_OK) {
+      BX_PANIC(("Could not open wave output device"));
+    }
+
+```
 # Usage
 ```sh
 git clone https://github.com/lizhijian-cn/pintos.git
