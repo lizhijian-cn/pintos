@@ -1,7 +1,41 @@
 # pintos
 
+# Usage
+```sh
+git clone https://github.com/lizhijian-cn/pintos.git
+
+cd pintos
+
+# add pintos to $PATH
+echo "export PINTOS_HOME=$PWD" >> ~/.zshrc
+echo "export PATH=\$PATH:\$PINTOS_HOME/src/utils" >> ~/.zshrc
+source ~/.zshrc
+```
+
+## check project 1 threads, 27 tests
+```
+git checkout threads
+cd $PINTOS_HOME/src/threads
+make check
+```
+
+## check project 2 userprog, 80 tests
+```
+git checkout userprog
+cd $PINTOS_HOME/src/userprog
+make check
+```
+![](https://raw.githubusercontent.com/lizhijian-cn/static/master/img/20201213023210.png)
+
+## check project 3 vm, 
+```
+git checkout vm
+cd $PINTOS_HOME/src/vm
+make check
+```
+
 # Environment
-* ubuntu 20.04
+* ubuntu 20.04 (wsl2)
 * bochs 2.6.10 
 * qemu (if you want to debug in gdb)
 
@@ -40,31 +74,11 @@ sudo make install
 sudo apt install qemu-system
 
 # debug pintos just like this
-# add --qemu --gdb option
+# add --qemu --gdb
 cd $PINTOS_HOME/src/threads/
 make
 pintos -v -k -T 60 --qemu --gdb  -- -q  run alarm-single
 ```
-
-# Usage
-```sh
-git clone https://github.com/lizhijian-cn/pintos.git
-
-cd pintos
-
-# add pintos to $PATH
-echo "export PINTOS_HOME=$PWD" >> ~/.zshrc
-echo "export PATH=\$PATH:\$PINTOS_HOME/src/utils" >> ~/.zshrc
-source ~/.zshrc
-```
-
-## check project 2, 80 tests
-```
-git checkout userprog
-cd $PINTOS_HOME/src/userprog
-make check
-```
-![](https://raw.githubusercontent.com/lizhijian-cn/static/master/img/20201213023210.png)
 
 # PS
 由于使用的Ubuntu20.04移除了一些32位库和某些不知情的原因，一直无法成功编译安装bochs和pintos。感谢这位同学提供的移植到20.04的pintos，我也做了一些摸索，删除了pintos中的第564行
