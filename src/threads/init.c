@@ -103,6 +103,7 @@ main (void)
 #ifdef USERPROG
   tss_init ();
   gdt_init ();
+  process_sys_init ();
 #endif
 
   /* Initialize interrupt handlers. */
@@ -133,6 +134,9 @@ main (void)
   run_actions (argv);
 
   /* Finish up. */
+#ifdef USERPROG
+  process_sys_exit ();
+#endif
   shutdown ();
   thread_exit ();
 }

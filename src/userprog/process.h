@@ -3,6 +3,9 @@
 
 #include "threads/thread.h"
 
+void process_sys_init (void);
+void process_sys_exit (void);
+
 tid_t process_execute (const char *file_name);
 int process_wait (tid_t);
 void process_exit (void);

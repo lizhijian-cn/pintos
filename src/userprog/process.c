@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <hash.h>
 #include "userprog/gdt.h"
 #include "userprog/pagedir.h"
 #include "userprog/tss.h"
@@ -19,19 +20,65 @@
 #include "threads/vaddr.h"
 #include "devices/timer.h"
 #include "userprog/process_file.h"
+#include "threads/malloc.h"
 
+static struct hash process_hash;
+
+struct process_entry
+  {
+    struct hash_elem hash_elem;
+    tid_t pid;
+    int status_code;
+    bool waited;
+  };
+
+static unsigned
+process_entry_hash (const struct hash_elem *e, void *aux UNUSED)
+{
+  const struct process_entry *p = hash_entry (e, struct process_entry, hash_elem);
+  return hash_int (p->pid);
+}
+
+static bool
+process_entry_less (const struct hash_elem *a_, const struct hash_elem *b_,
+           void *aux UNUSED)
+{
+  const struct process_entry *a = hash_entry (a_, struct process_entry, hash_elem);
+  const struct process_entry *b = hash_entry (b_, struct process_entry, hash_elem);
+
+  return a->pid < b->pid;
+}
+
+static void
+process_entry_destroy (struct hash_elem *e, void *aux UNUSED)
+{
+  struct process_entry *p = hash_entry (e, struct process_entry, hash_elem);
+  free (p);
+}
+
+void
+process_sys_init (void)
+{
+  hash_init (&process_hash, process_entry_hash, process_entry_less, NULL);
+}
+
+void
+process_sys_exit (void)
+{
+  hash_destroy (&process_hash, process_entry_destroy);
+}
+
+static struct process_entry *
+process_entry_lookup (const tid_t pid)
+{
+  struct process_entry p;
+  p.pid = pid;
+  struct hash_elem *e = hash_find (&process_hash, &p.hash_elem);
+  return e != NULL ? hash_entry (e, struct process_entry, hash_elem) : NULL;
+
+}
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
-
-#define MAX_PROCESS_COUNT 10000
-enum PID_STATUS
-  {
-    INVALID,
-    NONWAITED,
-    WAITED
-  };
-static enum PID_STATUS process_status[MAX_PROCESS_COUNT];
-static int process_status_code[MAX_PROCESS_COUNT];
 
 /* Starts a new thread running a user program loaded from
    FILENAME.  The new thread may be scheduled (and may even exit)
@@ -68,7 +115,11 @@ process_execute (const char *file_name)
     tid = TID_ERROR;
   
   if (tid != TID_ERROR)
-    process_status[tid] = NONWAITED;
+    {
+      struct process_entry *p = malloc (sizeof (struct process_entry));
+      p->pid = tid;
+      hash_insert (&process_hash, &p->hash_elem);
+    }
   return tid;
 }
 
@@ -138,14 +189,16 @@ int
 process_wait (tid_t child_tid) 
 {
   struct thread *cur = thread_current ();
-  if (child_tid > MAX_PROCESS_COUNT || process_status[child_tid] == INVALID || process_status[child_tid] == WAITED)
+  struct process_entry *p = process_entry_lookup (cur->tid);
+  if (p == NULL || p->waited)
     return -1;
   
-  process_status[child_tid] = WAITED;
+  p->waited = true;
+
   struct thread *t = get_thread_by_tid (cur, child_tid);
   if (t != NULL)
     sema_down (&t->wait_sema);
-  return process_status_code[child_tid];
+  return p->status_code;
 }
 
 /* Free the current process's resources. */
@@ -174,7 +227,9 @@ process_exit (void)
     }
   close_all_open_file (cur);
 
-  process_status_code[cur->tid] = cur->status_code;
+  struct process_entry *p = process_entry_lookup (cur->tid);
+  p->status_code = cur->status_code;
+
   list_remove (&cur->process_elem);
   if (cur->self_file != NULL)
     {
