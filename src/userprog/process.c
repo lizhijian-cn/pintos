@@ -118,6 +118,7 @@ process_execute (const char *file_name)
     {
       struct process_entry *p = malloc (sizeof (struct process_entry));
       p->pid = tid;
+      p->waited = false;
       hash_insert (&process_hash, &p->hash_elem);
     }
   return tid;
@@ -189,7 +190,7 @@ int
 process_wait (tid_t child_tid) 
 {
   struct thread *cur = thread_current ();
-  struct process_entry *p = process_entry_lookup (cur->tid);
+  struct process_entry *p = process_entry_lookup (child_tid);
   if (p == NULL || p->waited)
     return -1;
   
@@ -228,7 +229,8 @@ process_exit (void)
   close_all_open_file (cur);
 
   struct process_entry *p = process_entry_lookup (cur->tid);
-  p->status_code = cur->status_code;
+  if (p != NULL) 
+    p->status_code = cur->status_code;
 
   list_remove (&cur->process_elem);
   if (cur->self_file != NULL)
