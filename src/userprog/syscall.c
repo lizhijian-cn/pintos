@@ -187,7 +187,7 @@ get_args (struct intr_frame *f, int *args, int argc)
 void
 check_valid_addr (const void *ptr)
 {
-  if (ptr == NULL || ptr >= PHYS_BASE || ptr < (void *) 0x08048000)
+  if (!is_valid_user_vaddr (ptr))
     exit (-1);
 
   if (pagedir_get_page (thread_current ()->pagedir, ptr) == NULL)
