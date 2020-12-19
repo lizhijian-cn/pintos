@@ -223,6 +223,21 @@ get_user (const uint8_t *uaddr) {
   return result;
 }
 
+static int32_t
+put_user (uint8_t *udst, uint8_t byte) {
+  // check that a user pointer `udst` points below PHYS_BASE
+  if (! ((void*)udst < PHYS_BASE)) {
+    return false;
+  }
+
+  int error_code;
+
+  // as suggested in the reference manual, see (3.1.5)
+  asm ("movl $1f, %0; movb %b2, %1; 1:"
+      : "=&a" (error_code), "=m" (*udst) : "q" (byte));
+  return error_code;
+}
+
 void
 check_valid_addr (const void *ptr)
 {
@@ -291,6 +306,9 @@ filesize (int fd)
 int
 read (int fd, void *buffer, unsigned size)
 {
+  for (unsigned i = 0; i < size; i++)
+    if (put_user (buffer + i, '\0') == -1)
+      exit (-1);
   if (fd == 0)
     {
       char *buf = buffer;
