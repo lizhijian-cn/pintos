@@ -37,5 +37,5 @@ struct sup_page_table_entry *spt_get_file_spte (struct hash *spt, void *upage, s
                                                 uint32_t read_bytes, uint32_t zero_bytes, bool writable);
 
 void spt_free_spte (struct hash *spt, void *upage);
-void spt_free_file_spte (struct hash *spt, void *upage, uint32_t *pagedir, struct file *file, off_t offset, size_t read_bytes);
+void spt_free_file_spte (struct hash *spt, void *upage, struct file *file, off_t offset, size_t read_bytes, uint32_t *pagedir);
 void spt_convert_spte_to_swap (struct hash *spt, void *upage, size_t swap_index);

@@ -46,7 +46,7 @@ mmap_close (struct thread *t, struct mmap *mmap)
     {
       void *addr = mmap->upage + offset;
       size_t read_bytes = offset + PGSIZE < file_size ? PGSIZE : file_size - offset;
-      spt_free_file_spte (&t->spt, t->pagedir, addr, mmap->file, offset, read_bytes);
+      spt_free_file_spte (&t->spt,  addr, mmap->file, offset, read_bytes, t->pagedir);
     }
   list_remove (&mmap->elem);
   free(mmap->file);

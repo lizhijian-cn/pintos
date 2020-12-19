@@ -120,7 +120,7 @@ spt_free_spte (struct hash *spt, void *upage)
 }
 
 void
-spt_free_file_spte (struct hash *spt, void *upage, uint32_t *pagedir, struct file *file, off_t offset, size_t read_bytes)
+spt_free_file_spte (struct hash *spt, void *upage, struct file *file, off_t offset, size_t read_bytes, uint32_t *pagedir)
 {
   ASSERT (pg_ofs (upage) == 0);
   struct sup_page_table_entry *spte = spt_lookup (spt, upage);
