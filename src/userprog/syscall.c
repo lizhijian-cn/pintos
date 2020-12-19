@@ -12,7 +12,9 @@
 #include "userprog/pagedir.h"
 #include "userprog/process_file.h"
 #include "userprog/process.h"
-
+#ifdef VM
+#include "vm/mmap.h"
+#endif
 static void syscall_handler (struct intr_frame *f);
 
 void
@@ -35,7 +37,10 @@ int write (int fd, const void *buffer, unsigned size);
 void seek (int fd, unsigned position);
 unsigned tell (int fd);
 void close (int fd);
-
+#ifdef VM
+int mmap(int fd, void* addr);
+void munmap(int mapping);
+#endif
 
 static void
 syscall_handler (struct intr_frame *f UNUSED) 
@@ -153,6 +158,25 @@ syscall_handler (struct intr_frame *f UNUSED)
           close (args[0]);
           break;
         }
+       // mapid_t mmap(int fd, void* addr)
+// #ifdef VM
+//       case SYS_MMAP:
+//         {
+//           get_args (f, args, 2);
+//           int fd = args[0];
+//           void *addr = (void *) args[1];
+//           f->eax = mmap (fd, addr);
+//           break;
+//         }
+//       // void munmap(mapid_t mapping)
+//       case SYS_MUNMAP:
+//         {
+//           get_args (f, args, 1);
+//           int mapid = args[0];
+//           munmap (mapid);
+//           break;
+//         }
+// #endif      
       default:
         printf ("unknown syscall code %d\n", code);
         exit (-1);
@@ -210,20 +234,10 @@ void
 check_valid_addr (const void *ptr)
 {
   if (!is_valid_user_vaddr (ptr))
-    {
-#ifdef DEBUG
-      printf("debug: %p invalid\n", ptr);
-#endif
       exit (-1);
-    }
 
   if (pagedir_get_page (thread_current ()->pagedir, ptr) == NULL)
-    {
-#ifdef DEBUG
-      printf("debug: %p invalid\n", ptr);
-#endif
       exit (-1);
-    }
 }
 #endif
 void
@@ -336,3 +350,39 @@ close (int fd)
 
   process_file_close (pfile);
 }
+
+#ifdef VM
+int
+mmap(int fd, void* addr)
+{
+  if (fd == 0 || fd == 1)
+    return -1;
+  
+  if (addr == NULL || pg_ofs (addr) != 0)
+    return -1;
+
+  struct process_file *pfile = get_process_file_by_fd (thread_current (), fd);
+  if (pfile == NULL)
+    return -1;
+  
+  struct file *file = file_reopen(pfile->file);
+  off_t file_size = file_length (file);
+  if (file_size == 0)
+    return -1;
+  
+  struct thread *cur = thread_current ();
+  return mmap_open (cur, file, file_size, addr);
+}
+
+void
+munmap (int mapid)
+{
+  struct thread *cur = thread_current ();   
+
+  struct mmap *mmap = get_mmap_by_mapid (cur, mapid);
+  if (mmap == NULL)
+    return;
+  
+  mmap_close (cur, mmap);                   
+}
+#endif

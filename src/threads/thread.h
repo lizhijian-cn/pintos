@@ -119,6 +119,8 @@ struct thread
 #endif
 #ifdef VM
     struct hash spt;
+    struct list mmap_list;
+    int mapid;
 #endif
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */

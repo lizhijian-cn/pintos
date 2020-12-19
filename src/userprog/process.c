@@ -357,6 +357,8 @@ load (const char *file_name, void (**eip) (void), void **esp)
   t->pagedir = pagedir_create ();
 #ifdef VM
   spt_init (&t->spt);
+  list_init (&t->mmap_list);
+  t->mapid = 0;
 #endif
   if (t->pagedir == NULL) 
     goto done;
