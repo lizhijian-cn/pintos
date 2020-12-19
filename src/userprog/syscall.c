@@ -159,24 +159,24 @@ syscall_handler (struct intr_frame *f UNUSED)
           break;
         }
        // mapid_t mmap(int fd, void* addr)
-// #ifdef VM
-//       case SYS_MMAP:
-//         {
-//           get_args (f, args, 2);
-//           int fd = args[0];
-//           void *addr = (void *) args[1];
-//           f->eax = mmap (fd, addr);
-//           break;
-//         }
-//       // void munmap(mapid_t mapping)
-//       case SYS_MUNMAP:
-//         {
-//           get_args (f, args, 1);
-//           int mapid = args[0];
-//           munmap (mapid);
-//           break;
-//         }
-// #endif      
+#ifdef VM
+      case SYS_MMAP:
+        {
+          get_args (f, args, 2);
+          int fd = args[0];
+          void *addr = (void *) args[1];
+          f->eax = mmap (fd, addr);
+          break;
+        }
+      // void munmap(mapid_t mapping)
+      case SYS_MUNMAP:
+        {
+          get_args (f, args, 1);
+          int mapid = args[0];
+          munmap (mapid);
+          break;
+        }
+#endif      
       default:
         printf ("unknown syscall code %d\n", code);
         exit (-1);
