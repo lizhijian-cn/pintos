@@ -59,7 +59,7 @@ close_all_mmap (struct thread *t)
   struct list *mmaps = &t->mmap_list;
   while (!list_empty (mmaps))
     {
-      struct list_elem *e = list_pop_front (mmaps);
+      struct list_elem *e = list_front (mmaps);
       struct mmap *mmap = list_entry(e, struct mmap, elem);
       mmap_close (t, mmap);
     }

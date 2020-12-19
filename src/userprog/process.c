@@ -23,6 +23,7 @@
 #include "threads/malloc.h"
 #ifdef VM
 #include "vm/sup-page-table.h"
+#include "vm/mmap.h"
 #endif
 static struct hash process_hash;
 
@@ -211,6 +212,7 @@ process_exit (void)
   struct thread *cur = thread_current ();
   printf ("%s: exit(%d)\n", cur->name, cur->status_code);
 #ifdef VM
+  close_all_mmap (cur);
   spt_destroy (&cur->spt);
 #endif
   uint32_t *pd;
