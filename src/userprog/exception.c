@@ -165,7 +165,7 @@ page_fault (struct intr_frame *f)
   struct sup_page_table_entry *spte = spt_lookup (&cur->spt, upage);
   void *frame = ft_get_frame (upage);
 #ifdef DEBUG
-  printf ("debug: fault: %p\n", upage);
+  printf ("debug: fault: %d, %p, %p\n", cur->tid, fault_addr, upage);
 #endif
   if (spte == NULL)
     {
@@ -181,10 +181,10 @@ page_fault (struct intr_frame *f)
       case EMPTY:
         memset (frame, 0, PGSIZE);
         break;
-      case SWAP:
+      case IN_SWAP:
         swap_from_block (frame, spte->swap_index);
         break;
-      case FILE:
+      case IN_FILE:
         file_seek (spte->file, spte->offset);
         if (file_read (spte->file, frame, spte->read_bytes) != (off_t) spte->read_bytes)
           {
@@ -193,11 +193,11 @@ page_fault (struct intr_frame *f)
           }
         memset (frame + spte->read_bytes, 0, spte->zero_bytes);
         break;
-      case FRAME:
+      case ON_FRAME:
       default:
         NOT_REACHED();
     }
-  spte->status = FRAME;
+  spte->status = ON_FRAME;
   spte->frame = frame;
   bool access = pagedir_set_page (cur->pagedir, upage, frame, true);
   if (access)

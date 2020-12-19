@@ -3,10 +3,10 @@
 
 enum spte_status
   {
-    FRAME,
+    ON_FRAME,
     EMPTY,
-    SWAP,
-    FILE
+    IN_SWAP,
+    IN_FILE
   };
 
 struct sup_page_table_entry
@@ -15,8 +15,6 @@ struct sup_page_table_entry
 
     void *upage;
     void *frame;
-
-    struct thread *owner;
 
     size_t swap_index;
 
@@ -38,6 +36,6 @@ struct sup_page_table_entry *spt_get_spte (struct hash *spt, void *upage);
 struct sup_page_table_entry *spt_get_file_spte (struct hash *spt, void *upage, struct file * file, off_t offset, 
                                                 uint32_t read_bytes, uint32_t zero_bytes, bool writable);
 
-void spt_free_spte (struct sup_page_table_entry *spte);
-
+void spt_free_spte (struct hash *spt, void *upage);
+void spt_free_file_spte (struct hash *spt, void *upage, uint32_t *pagedir, struct file *file, off_t offset, size_t read_bytes);
 void spt_convert_spte_to_swap (struct hash *spt, void *upage, size_t swap_index);
