@@ -1,10 +1,17 @@
 #include "userprog/exception.h"
 #include <inttypes.h>
 #include <stdio.h>
+#include <string.h>
 #include "userprog/gdt.h"
 #include "threads/interrupt.h"
 #include "threads/thread.h"
-
+#include "threads/vaddr.h"
+#ifdef VM
+#include "userprog/pagedir.h"
+#include "vm/sup-page-table.h"
+#include "vm/frame-table.h"
+#include "vm/swap.h"
+#endif
 /* Number of page faults processed. */
 static long long page_fault_cnt;
 
@@ -149,6 +156,60 @@ page_fault (struct intr_frame *f)
   write = (f->error_code & PF_W) != 0;
   user = (f->error_code & PF_U) != 0;
 
+#ifdef VM
+  if (!not_present)
+    goto failed;
+
+  void *upage = pg_round_down (fault_addr);
+  struct thread *cur = thread_current ();
+  struct sup_page_table_entry *spte = spt_lookup (&cur->spt, upage);
+  void *frame = ft_get_frame (upage);
+#ifdef DEBUG
+  printf ("debug: fault: %p\n", upage);
+#endif
+  if (spte == NULL)
+    {
+      bool grow_stack_contiguous = fault_addr >= (f->esp - 32);
+      if (!is_valid_user_vaddr (fault_addr) || !grow_stack_contiguous)
+        goto failed;
+      
+      spte = spt_get_spte (&cur->spt, upage);
+      ASSERT (spte != NULL);
+    }
+  switch (spte->status)
+    {
+      case EMPTY:
+        memset (frame, 0, PGSIZE);
+        break;
+      case SWAP:
+        swap_from_block (frame, spte->swap_index);
+        break;
+      case FILE:
+        file_seek (spte->file, spte->offset);
+        if (file_read (spte->file, frame, spte->read_bytes) != (off_t) spte->read_bytes)
+          {
+            ft_free_frame (frame, true);
+            return;
+          }
+        memset (frame + spte->read_bytes, 0, spte->zero_bytes);
+        break;
+      case FRAME:
+      default:
+        NOT_REACHED();
+    }
+  spte->status = FRAME;
+  spte->frame = frame;
+  bool access = pagedir_set_page (cur->pagedir, upage, frame, true);
+  if (access)
+    return;
+failed:
+  if(!user) 
+    { // kernel mode
+      f->eip = (void *) f->eax;
+      f->eax = 0xffffffff;
+      return;
+    }
+#endif
   /* To implement virtual memory, delete the rest of the function
      body, and replace it with code that brings in the page to
      which fault_addr refers. */

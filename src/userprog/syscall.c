@@ -188,10 +188,20 @@ void
 check_valid_addr (const void *ptr)
 {
   if (!is_valid_user_vaddr (ptr))
-    exit (-1);
+    {
+#ifdef DEBUG
+      printf("debug: %p invalid\n", ptr);
+#endif
+      exit (-1);
+    }
 
-  if (pagedir_get_page (thread_current ()->pagedir, ptr) == NULL)
-    exit (-1);
+//   if (pagedir_get_page (thread_current ()->pagedir, ptr) == NULL)
+//     {
+// #ifdef DEBUG
+//       printf("debug: %p invalid\n", ptr);
+// #endif
+//       exit (-1);
+//     }
 }
 
 void
