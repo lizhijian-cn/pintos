@@ -32,7 +32,7 @@ spte_destroy_func(struct hash_elem *elem, void *aux UNUSED)
   if (spte->frame != NULL)
     {
       ASSERT (spte->status == ON_FRAME);
-      ft_free_frame (spte->frame, false);
+      ft_free_frame (spte->frame, false, false);
     }
   else if(spte->status == IN_SWAP)
     swap_free (spte->swap_index);
@@ -110,7 +110,7 @@ spt_free_spte (struct hash *spt, void *upage)
   if (spte->frame != NULL)
     {
       ASSERT (spte->status == ON_FRAME);
-      ft_free_frame (spte->frame, false);
+      ft_free_frame (spte->frame, false, false);
     }
   else if(spte->status == IN_SWAP)
     swap_free (spte->swap_index);
@@ -134,7 +134,7 @@ spt_free_file_spte (struct hash *spt, void *upage, uint32_t *pagedir, struct fil
         if(pagedir_is_dirty (pagedir, spte->upage)) 
           file_write_at (file, spte->upage, read_bytes, offset);
 
-        ft_free_frame (spte->frame, true);
+        ft_free_frame (spte->frame, true, false);
         pagedir_clear_page (pagedir, spte->upage);
         break;
 

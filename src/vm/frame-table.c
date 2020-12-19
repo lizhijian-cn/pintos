@@ -10,7 +10,7 @@
 
 static struct list frame_list;
 static struct hash frame_table;
-
+static struct lock frame_lock;
 static struct list_elem *clock_elem;
 
 struct frame_table_entry
@@ -43,6 +43,7 @@ ft_init (void)
 {
   list_init (&frame_list);
   hash_init (&frame_table, fte_hash_func, fte_less_func, NULL);
+  lock_init (&frame_lock);
   clock_elem = NULL;
 }
 
@@ -86,6 +87,7 @@ evict (uint32_t *pagedir)
           pagedir_set_accessed (pagedir, fte->upage, false);
           continue;
         }
+      // printf ("debug: evict fte: %p, frame: %p\n", fte, fte->frame);
       return fte;
     }
   
@@ -104,6 +106,7 @@ ft_lookup (void *frame)
 void *
 ft_get_frame (void *upage)
 {
+  lock_acquire (&frame_lock);
   void *frame = palloc_get_page (PAL_USER);
 
   if (frame == NULL)
@@ -113,7 +116,7 @@ ft_get_frame (void *upage)
       
       size_t swap_index = swap_to_block (fte->frame);
       spt_convert_spte_to_swap (&fte->owner->spt, fte->upage, swap_index);
-      ft_free_frame (fte->frame, true);
+      ft_free_frame (fte->frame, true, true);
 
       frame = palloc_get_page (PAL_USER);
       ASSERT (frame != NULL);
@@ -129,12 +132,15 @@ ft_get_frame (void *upage)
 
   list_push_back (&frame_list, &fte->elem);
   hash_insert (&frame_table, &fte->hash_elem);
+  lock_release (&frame_lock);
   return frame;
 }
 
 void
-ft_free_frame (void *frame, bool free_frame)
+ft_free_frame (void *frame, bool free_frame, bool caller_is_get_frame)
 {
+  if (!caller_is_get_frame)
+    lock_acquire (&frame_lock);
   struct frame_table_entry *fte = ft_lookup (frame);
   ASSERT (fte != NULL);
 
@@ -148,4 +154,6 @@ ft_free_frame (void *frame, bool free_frame)
 #endif
     }
   free (fte);
+  if (!caller_is_get_frame)
+    lock_release (&frame_lock);
 }
