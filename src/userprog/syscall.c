@@ -184,6 +184,28 @@ get_args (struct intr_frame *f, int *args, int argc)
     }
 }
 
+#ifdef VM
+static int32_t
+get_user (const uint8_t *uaddr) {
+  // check that a user pointer `uaddr` points below PHYS_BASE
+  if (! ((void*) uaddr < PHYS_BASE)) {
+    return -1;
+  }
+
+  // as suggested in the reference manual, see (3.1.5)
+  int result;
+  asm ("movl $1f, %0; movzbl %1, %0; 1:"
+      : "=&a" (result) : "m" (*uaddr));
+  return result;
+}
+
+void
+check_valid_addr (const void *ptr)
+{
+  if (get_user (ptr) == -1)
+    exit (-1);
+}
+#else
 void
 check_valid_addr (const void *ptr)
 {
@@ -195,15 +217,15 @@ check_valid_addr (const void *ptr)
       exit (-1);
     }
 
-//   if (pagedir_get_page (thread_current ()->pagedir, ptr) == NULL)
-//     {
-// #ifdef DEBUG
-//       printf("debug: %p invalid\n", ptr);
-// #endif
-//       exit (-1);
-//     }
+  if (pagedir_get_page (thread_current ()->pagedir, ptr) == NULL)
+    {
+#ifdef DEBUG
+      printf("debug: %p invalid\n", ptr);
+#endif
+      exit (-1);
+    }
 }
-
+#endif
 void
 check_valid_buffer (const void *ptr, unsigned size)
 {
