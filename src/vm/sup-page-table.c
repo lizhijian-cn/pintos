@@ -97,8 +97,7 @@ spt_get_file_spte (struct hash *spt, void *upage, struct file * file, off_t offs
   spte->zero_bytes = zero_bytes;
   spte->writable = writable;
 
-  ASSERT (hash_insert (spt, &spte->hash_elem) == NULL);
-  return spte;
+  return hash_insert (spt, &spte->hash_elem) == NULL ? spte : NULL;
 }
 
 void

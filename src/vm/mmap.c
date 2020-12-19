@@ -26,7 +26,8 @@ mmap_open (struct thread *t, struct file *file, off_t file_size, void *upage)
       size_t read_bytes = (offset + PGSIZE < file_size ? PGSIZE : file_size - offset);
       size_t zero_bytes = PGSIZE - read_bytes;
 
-      spt_get_file_spte (&t->spt, addr, file, offset, read_bytes, zero_bytes, true);
+      if (spt_get_file_spte (&t->spt, addr, file, offset, read_bytes, zero_bytes, true) == NULL)
+        return -1;
     }
 
   struct mmap *mmap = malloc (sizeof (struct mmap));
