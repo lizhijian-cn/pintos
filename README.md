@@ -27,12 +27,13 @@ make check
 ```
 ![](https://raw.githubusercontent.com/lizhijian-cn/static/master/img/20201213023210.png)
 
-## check project 3 vm, 
+## check project 3 vm, 113 tests
 ```
 git checkout vm
 cd $PINTOS_HOME/src/vm
 make check
 ```
+![](https://raw.githubusercontent.com/lizhijian-cn/static/master/img/20201220035900.png)
 
 # Environment
 * ubuntu 20.04 (wsl2)
@@ -81,7 +82,7 @@ pintos -v -k -T 60 --qemu --gdb  -- -q  run alarm-single
 ```
 
 # PS
-由于使用的Ubuntu20.04移除了一些32位库和某些不知情的原因，一直无法成功编译安装bochs和pintos。感谢这位同学提供的移植到20.04的pintos，我也做了一些摸索，删除了pintos中的第564行
+由于使用的Ubuntu20.04移除了一些32位库和某些不知情的原因，一直无法成功编译安装bochs和pintos。感谢这位同学的![已移植到20.04的pintos](https://github.com/leoleoasd/pintos_configuration)，我也做了一些摸索，删除了pintos中的第564行
 ```
 user_shortcut: keys=ctrlaltdel
 ```
