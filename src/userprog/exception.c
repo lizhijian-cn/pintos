@@ -163,7 +163,6 @@ page_fault (struct intr_frame *f)
   void *upage = pg_round_down (fault_addr);
   struct thread *cur = thread_current ();
   struct sup_page_table_entry *spte = spt_lookup (&cur->spt, upage);
-  void *frame = ft_get_frame (upage);
 #ifdef DEBUG
   printf ("debug: fault: %d, %p, %p\n", cur->tid, upage, fault_addr);
 #endif
@@ -176,6 +175,7 @@ page_fault (struct intr_frame *f)
       spte = spt_get_spte (&cur->spt, upage);
       ASSERT (spte != NULL);
     }
+  void *frame = ft_get_frame (upage);
   bool writable = true;
   switch (spte->status)
     {
