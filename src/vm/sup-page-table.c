@@ -166,6 +166,8 @@ spt_convert_spte_to_swap (struct hash *spt, void *upage, size_t swap_index)
   ASSERT (pg_ofs (upage) == 0);
 
   struct sup_page_table_entry *spte = spt_lookup (spt, upage);
+  if (spte == NULL)
+    return;
   ASSERT (spte != NULL);
   ASSERT (spte->status != IN_SWAP);
 

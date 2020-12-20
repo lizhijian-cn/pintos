@@ -142,7 +142,13 @@ ft_free_frame (void *frame, bool free_frame, bool caller_is_get_frame)
   if (!caller_is_get_frame)
     lock_acquire (&frame_lock);
   struct frame_table_entry *fte = ft_lookup (frame);
-  ASSERT (fte != NULL);
+  if (fte == NULL)
+    {
+      if (!caller_is_get_frame)
+        lock_release (&frame_lock);
+      return;
+    }
+  // ASSERT (fte != NULL);
 
   list_remove (&fte->elem);
   hash_delete (&frame_table, &fte->hash_elem);

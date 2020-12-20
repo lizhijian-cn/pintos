@@ -178,7 +178,6 @@ syscall_handler (struct intr_frame *f UNUSED)
         }
 #endif      
       default:
-        printf ("unknown syscall code %d\n", code);
         exit (-1);
         break;
     }
