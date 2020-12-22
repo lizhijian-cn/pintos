@@ -8,9 +8,18 @@
 
 > Fill in the names and email addresses of your group members.
 
-FirstName LastName <email@domain.example>
-FirstName LastName <email@domain.example>
-FirstName LastName <email@domain.example>
+杨海波 hbyang2017@163.com
+
+李智建 zjli2000@gmail.com
+
+杨哲宇 yangzheyu00@hotmail.com
+
+李科言 17377083@buaa.edu.cn
+
+
+权重均为1.00
+
+![](https://raw.githubusercontent.com/lizhijian-cn/static/master/img/20201222185342.png)
 
 ## PRELIMINARIES
 
